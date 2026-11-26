@@ -1,17 +1,29 @@
 const card = document.querySelector('#card');
 const progress = document.querySelector('#progress');
 
+const CUSTOM_FOOD = '其他';
+const CUSTOM_FOOD_MAX = 6;
+const AVATAR_SRC = 'assets/dog-avatar.jpg';
+const NICKNAME = '妮妮';
+
+// 确认页与海报共用同一份文案，改一处两边同时生效
+const FINAL_TITLE_LINES = [`${NICKNAME}，真开心你没拒绝～`, '我会准时来接你！'];
+const FINAL_ROUTE_LINE = '带好胃口，我带好路线。';
+
+function finalMealLine(food) {
+  return `${formatDate(state.date)} ${state.time}，我们去吃${food}。`;
+}
+
 const foods = [
   { emoji: '🍕', name: '披萨' },
   { emoji: '🍣', name: '寿司' },
   { emoji: '🍲', name: '火锅' },
   { emoji: '🍖', name: '烤肉' },
-  { emoji: '🥟', name: '早茶' },
   { emoji: '🍜', name: '拉面' },
   { emoji: '🌶️', name: '麻辣烫' },
   { emoji: '🦞', name: '小龙虾' },
   { emoji: '🍢', name: '烧烤' },
-  { emoji: '🍌', name: '其他' },
+  { emoji: '🍽️', name: CUSTOM_FOOD },
 ];
 
 const state = {
@@ -19,8 +31,11 @@ const state = {
   date: getTomorrow(),
   time: '17:00',
   food: '火锅',
+  customFood: '',
   noCount: 0,
 };
+
+let foodAdvanceTimer = null;
 
 const noLabels = ['不要 🤔', '再想想嘛 🥺', '点不到我 😌', '真的不要？😭'];
 
@@ -54,9 +69,9 @@ function render() {
 
 function renderInvite() {
   card.innerHTML = `
-    <img class="avatar" src="assets/dog-avatar.png" alt="开心的法国斗牛犬" />
+    <img class="avatar" src="${AVATAR_SRC}" alt="开心的法国斗牛犬" />
     <h1 class="title">🌸 可以和我一起<br />约会嘛？！ 🌸</h1>
-    <p class="subtitle">系统检测到：对方已经紧张到开始写网页了。</p>
+    <p class="subtitle">${NICKNAME}，当面说我会卡壳，只好写成了一页。</p>
     <div class="actions">
       <button class="comic-button primary" id="yesButton" type="button">愿意 ❤</button>
       <button class="comic-button no-button" id="noButton" type="button">不要 🤔</button>
@@ -127,9 +142,10 @@ function todayValue() {
 
 function renderFood() {
   card.classList.add('food-card');
+  const isCustom = state.food === CUSTOM_FOOD;
   card.innerHTML = `
     <h1 class="title compact">我们吃点什么？ 🍽️✨</h1>
-    <p class="subtitle">挑一个今天的约会氛围。</p>
+    <p class="subtitle">挑一个今天的约会氛围，也可以自己写。</p>
     <div class="food-grid" role="group" aria-label="选择约会餐食">
       ${foods
         .map(
@@ -142,28 +158,89 @@ function renderFood() {
         )
         .join('')}
     </div>
+    <div class="custom-food${isCustom ? ' is-open' : ''}" id="customFood">
+      <label class="custom-food-label" for="customFoodInput">想吃什么？自己写一个 ✍️</label>
+      <div class="custom-food-row">
+        <input
+          class="custom-food-input"
+          id="customFoodInput"
+          type="text"
+          maxlength="${CUSTOM_FOOD_MAX}"
+          autocomplete="off"
+          enterkeyhint="done"
+          placeholder="例如：日料、私房菜"
+          value="${escapeHtml(state.customFood)}"
+        />
+        <button class="comic-button primary custom-food-confirm" id="customFoodConfirm" type="button">就它 ❤</button>
+      </div>
+      <p class="custom-food-hint" id="customFoodHint" role="status" aria-live="polite"></p>
+    </div>
   `;
+
+  const panel = card.querySelector('#customFood');
+  const input = card.querySelector('#customFoodInput');
+  const hint = card.querySelector('#customFoodHint');
+
+  const markSelected = (target) => {
+    card.querySelectorAll('.food-option').forEach((option) => {
+      const selected = option === target;
+      option.classList.toggle('selected', selected);
+      option.setAttribute('aria-pressed', String(selected));
+    });
+  };
+
+  const submitCustom = () => {
+    const value = input.value.trim().replace(/\s+/g, ' ');
+    if (!value) {
+      hint.textContent = '先写一个想吃的，再点「就它」～';
+      input.focus();
+      return;
+    }
+    state.customFood = value.slice(0, CUSTOM_FOOD_MAX);
+    state.food = state.customFood;
+    setStep(4);
+  };
 
   card.querySelectorAll('.food-option').forEach((button) => {
     button.addEventListener('click', () => {
+      window.clearTimeout(foodAdvanceTimer);
+      markSelected(button);
+
+      if (button.dataset.food === CUSTOM_FOOD) {
+        state.food = CUSTOM_FOOD;
+        panel.classList.add('is-open');
+        hint.textContent = '';
+        window.setTimeout(() => input.focus(), 60);
+        return;
+      }
+
       state.food = button.dataset.food;
-      card.querySelectorAll('.food-option').forEach((option) => {
-        const selected = option === button;
-        option.classList.toggle('selected', selected);
-        option.setAttribute('aria-pressed', String(selected));
-      });
-      window.setTimeout(() => setStep(4), 360);
+      panel.classList.remove('is-open');
+      foodAdvanceTimer = window.setTimeout(() => setStep(4), 360);
     });
   });
+
+  card.querySelector('#customFoodConfirm').addEventListener('click', submitCustom);
+  input.addEventListener('keydown', (event) => {
+    if (event.key !== 'Enter') return;
+    event.preventDefault();
+    submitCustom();
+  });
+  input.addEventListener('input', () => {
+    if (hint.textContent) hint.textContent = '';
+  });
+
+  if (isCustom) window.setTimeout(() => input.focus(), 60);
 }
 
 function renderFinal() {
   card.classList.add('final-card');
   const formattedDate = formatDate(state.date);
+  const foodName = escapeHtml(state.food);
   card.innerHTML = `
-    <img class="avatar" src="assets/dog-avatar.png" alt="开心的法国斗牛犬" />
-    <h1 class="title compact">真开心你没有拒绝～<br />我会准时来接你！</h1>
-    <p class="subtitle">${formattedDate} ${state.time}，我们去吃${state.food}。带好胃口，我带好路线。</p>
+    <img class="avatar" src="${AVATAR_SRC}" alt="开心的法国斗牛犬" />
+    <h1 class="title compact">${FINAL_TITLE_LINES.join('<br />')}</h1>
+    <p class="subtitle">${finalMealLine(foodName)}${FINAL_ROUTE_LINE}</p>
     <div class="summary-grid" aria-label="约会安排">
       <div class="summary-item">
         <span class="summary-label">DATE</span>
@@ -175,7 +252,7 @@ function renderFinal() {
       </div>
       <div class="summary-item">
         <span class="summary-label">MENU</span>
-        <strong class="summary-value">${state.food}</strong>
+        <strong class="summary-value">${foodName}</strong>
       </div>
     </div>
     <div class="final-actions">
@@ -184,11 +261,25 @@ function renderFinal() {
         <span>保存约会卡片</span>
       </button>
       <p class="save-status" id="saveStatus" role="status" aria-live="polite"></p>
+      <button class="restart-button" id="restartButton" type="button">↻ 重新开始</button>
     </div>
   `;
 
   card.querySelector('#saveCardButton').addEventListener('click', saveInvitationCard);
+  card.querySelector('#restartButton').addEventListener('click', restartInvitation);
   prepareSaveButton();
+}
+
+function restartInvitation() {
+  window.clearTimeout(foodAdvanceTimer);
+  foodAdvanceTimer = null;
+  state.step = 0;
+  state.date = getTomorrow();
+  state.time = '17:00';
+  state.food = '火锅';
+  state.customFood = '';
+  state.noCount = 0;
+  render();
 }
 
 function prepareSaveButton() {
@@ -312,15 +403,19 @@ function buildInvitationCanvas() {
   drawAvatar(context, avatar, 423, 174, 234, 52);
 
   context.fillStyle = ink;
-  context.font = '900 62px "PingFang SC", "Microsoft YaHei", sans-serif';
   context.textAlign = 'center';
-  context.fillText('真开心你没有拒绝～', 540, 495);
-  context.fillText('我会准时来接你！', 540, 580);
+  FINAL_TITLE_LINES.forEach((line, index) => {
+    const size = fitFontSize(context, line, 820, 62, 44);
+    context.font = `900 ${size}px "PingFang SC", "Microsoft YaHei", sans-serif`;
+    context.fillText(line, 540, 495 + index * 85);
+  });
 
+  const mealLine = finalMealLine(state.food);
   context.fillStyle = muted;
-  context.font = '700 29px "PingFang SC", "Microsoft YaHei", sans-serif';
-  context.fillText(`${formattedDate} ${state.time}，我们去吃${state.food}。`, 540, 658);
-  context.fillText('带好胃口，我带好路线。', 540, 705);
+  context.font = `700 ${fitFontSize(context, mealLine, 820, 29, 21)}px "PingFang SC", "Microsoft YaHei", sans-serif`;
+  context.textAlign = 'center';
+  context.fillText(mealLine, 540, 658);
+  context.fillText(FINAL_ROUTE_LINE, 540, 705);
 
   context.fillStyle = ink;
   roundedRect(context, 142, 792, 816, 330, 38);
@@ -353,7 +448,8 @@ function buildInvitationCanvas() {
     context.fillText(detail.label, x + 26, 880);
 
     context.fillStyle = ink;
-    context.font = '900 38px "PingFang SC", "Microsoft YaHei", sans-serif';
+    const valueSize = fitFontSize(context, detail.value, 190, 38, 22, 900);
+    context.font = `900 ${valueSize}px "PingFang SC", "Microsoft YaHei", sans-serif`;
     context.textAlign = 'center';
     context.fillText(detail.value, x + 113, 966);
   });
@@ -370,11 +466,40 @@ function buildInvitationCanvas() {
   return canvas;
 }
 
+function fitFontSize(context, text, maxWidth, startSize, minSize, weight = 900) {
+  const family = '"PingFang SC", "Microsoft YaHei", sans-serif';
+  let size = startSize;
+  while (size > minSize) {
+    context.font = `${weight} ${size}px ${family}`;
+    if (context.measureText(text).width <= maxWidth) return size;
+    size -= 2;
+  }
+  context.font = `${weight} ${minSize}px ${family}`;
+  return minSize;
+}
+
+function escapeHtml(value) {
+  const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+  return String(value).replace(/[&<>"']/g, (character) => map[character]);
+}
+
 function drawAvatar(context, image, x, y, size, radius) {
+  const sourceWidth = image.naturalWidth || image.width;
+  const sourceHeight = image.naturalHeight || image.height;
+  const scale = Math.max(size / sourceWidth, size / sourceHeight);
+  const drawWidth = sourceWidth * scale;
+  const drawHeight = sourceHeight * scale;
+
   context.save();
   roundedRect(context, x, y, size, size, radius);
   context.clip();
-  context.drawImage(image, x, y, size, size);
+  context.drawImage(
+    image,
+    x + (size - drawWidth) / 2,
+    y + (size - drawHeight) / 2,
+    drawWidth,
+    drawHeight,
+  );
   context.restore();
 }
 

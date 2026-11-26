@@ -214,8 +214,10 @@ p {
 
 .comic-button:focus-visible,
 .field input:focus-visible,
+.custom-food-input:focus-visible,
 .food-option:focus-visible,
-.save-card-button:focus-visible {
+.save-card-button:focus-visible,
+.restart-button:focus-visible {
   outline: 4px solid rgba(233, 78, 182, 0.28);
   outline-offset: 3px;
 }
@@ -325,6 +327,84 @@ p {
   line-height: 1.1;
 }
 
+.custom-food {
+  width: min(100%, 470px);
+  display: none;
+  gap: 9px;
+  margin-top: 20px;
+  padding: 16px;
+  border: 3px dashed rgba(23, 23, 29, 0.32);
+  border-radius: 18px;
+  background: #fff4fa;
+  text-align: left;
+}
+
+.custom-food.is-open {
+  display: grid;
+  animation: custom-in 260ms cubic-bezier(0.2, 0.9, 0.25, 1) both;
+}
+
+@keyframes custom-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.custom-food-label {
+  color: #625e65;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.custom-food-row {
+  display: flex;
+  gap: 10px;
+}
+
+.custom-food-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 54px;
+  padding: 0 16px;
+  border: 3px solid var(--ink);
+  border-radius: 14px;
+  background: var(--paper);
+  color: var(--ink);
+  font-weight: 800;
+  box-shadow: 4px 5px 0 var(--shadow);
+  transition:
+    border-color 150ms ease,
+    box-shadow 150ms ease;
+}
+
+.custom-food-input:focus {
+  border-color: var(--pink-dark);
+  box-shadow: 4px 5px 0 var(--pink-dark);
+}
+
+.custom-food-confirm {
+  flex: 0 0 auto;
+  min-width: 0;
+  height: 54px;
+  padding: 0 20px;
+  box-shadow: 4px 5px 0 var(--shadow);
+}
+
+.custom-food-hint {
+  color: var(--pink-dark);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.custom-food-hint:empty {
+  display: none;
+}
+
 .summary-grid {
   width: min(100%, 500px);
   display: grid;
@@ -365,6 +445,7 @@ p {
   font-size: clamp(20px, 3vw, 27px);
   font-weight: 900;
   letter-spacing: 0;
+  overflow-wrap: anywhere;
 }
 
 .final-actions {
@@ -399,6 +480,26 @@ p {
   color: var(--muted);
   font-size: 14px;
   font-weight: 700;
+}
+
+.restart-button {
+  margin-top: 2px;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  color: var(--muted);
+  font-size: 15px;
+  font-weight: 800;
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 4px;
+  cursor: pointer;
+  transition: color 150ms ease;
+}
+
+.restart-button:hover {
+  color: var(--pink-dark);
 }
 
 .progress-hearts {
@@ -554,7 +655,7 @@ p {
   }
 
   .final-card .title.compact {
-    font-size: clamp(23px, 7.2vw, 31px);
+    font-size: clamp(19px, 6.1vw, 31px);
     white-space: nowrap;
   }
 
@@ -604,6 +705,34 @@ p {
 
   .food-name {
     font-size: 14px;
+  }
+
+  .custom-food {
+    gap: 8px;
+    margin-top: 16px;
+    padding: 13px;
+    border-width: 2px;
+    border-radius: 15px;
+  }
+
+  .custom-food-label {
+    font-size: 14px;
+  }
+
+  .custom-food-row {
+    gap: 8px;
+  }
+
+  .custom-food-input {
+    height: 50px;
+    padding: 0 12px;
+    border-width: 2px;
+  }
+
+  .custom-food-confirm {
+    height: 50px;
+    padding: 0 14px;
+    border-width: 2px;
   }
 
   .summary-grid {
